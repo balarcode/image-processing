@@ -9,7 +9,9 @@
 *             needed to successfully compile and run the program are
 *             included and inlined in the header file for SOC modeling.
 *             Alternatively one can let the SCRC to compile and generate
-*             an output file similar to this file.
+*             an output file similar to this file. Remember to copy over
+*             function declarations for Canny edge detector algorithm
+*             from the end of this header file.
 *
 * All rights reserved.
 *********************************************************************/
