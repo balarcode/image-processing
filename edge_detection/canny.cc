@@ -1,8 +1,8 @@
 /*********************************************************************
 * Title     : Canny Edge Detector Algorithm
 * Author    : balarcode
-* Version   : 1.0
-* Date      : 26th October 2024
+* Version   : 1.1
+* Date      : 1st November 2024
 * File Type : C++ Program
 * File Test : Verified on open source SCRC V2.2
 * Comments  : Algorithm steps:
@@ -21,6 +21,17 @@ unsigned int _IDcnt = 0;
 
 /*********************************************************************
 * FUNCTION DEFINITIONS
+*********************************************************************/
+/*********************************************************************
+*@function     main
+*
+*@param  [in]  argc    - Argument count
+*@param  [in]  *argv[] - Argument vector to pass input image
+*
+*@param  [out] Result code of execution of main
+*
+*@brief        Main function to start the program.
+*
 *********************************************************************/
 int main(int argc, char *argv[]) {
     char *infilename = 0;
@@ -83,6 +94,22 @@ int main(int argc, char *argv[]) {
     }
 }
 
+/*********************************************************************
+*@function     canny
+*
+*@param  [in]  *image - Input image
+*@param  [in]  rows   - Number of rows of input image
+*@param  [in]  cols   - Number of columns of input image
+*@param  [in]  sigma  - Input standard deviation
+*@param  [in]  tlow   - Input low fraction for computing low gradient threshold
+*@param  [in]  thigh  - Input high fraction for computing high gradient threshold
+*
+*@param  [in/out]  *edge - Output edge detected image
+*@param  [out]    *fname - Output file to write gradient direction in radians
+*
+*@brief        Execute Canny edge detection.
+*
+*********************************************************************/
 void canny(unsigned char *image, int rows, int cols, float sigma,
     float tlow, float thigh, unsigned char *edge, char *fname) {
     struct _IO_FILE *fpdir = 0;
@@ -94,7 +121,7 @@ void canny(unsigned char *image, int rows, int cols, float sigma,
 
     float *dir_radians = 0;
 
-    if (0) printf("Smoothing the image using a gaussian kernel.\n");
+    if (0) printf("Smoothening the image using a Gaussian kernel.\n");
     gaussian_smooth(image, rows, cols, sigma, &smoothedim);
 
     if (0) printf("Computing the X and Y first derivatives.\n");
@@ -115,16 +142,14 @@ void canny(unsigned char *image, int rows, int cols, float sigma,
     if (0) printf("Computing the magnitude of the gradient.\n");
     magnitude_x_y(delta_x, delta_y, rows, cols, &magnitude);
 
-    if (0) printf("Doing the non-maximal suppression.\n");
+    if (0) printf("Performing non-maximal suppression.\n");
     if ((nms = (unsigned char *)calloc(rows * cols, sizeof(unsigned char))) == 0) {
 	    fprintf(stderr, "Error allocating the nms image.\n");
 	    exit(1);
     }
-
     non_max_supp(magnitude, delta_x, delta_y, rows, cols, nms);
 
-    if (0) printf("Doing hysteresis thresholding.\n");
-
+    if (0) printf("Performing hysteresis thresholding.\n");
     apply_hysteresis(magnitude, nms, rows, cols, tlow, thigh, edge);
 
     free(smoothedim);
@@ -233,6 +258,19 @@ void derrivative_x_y(short int *smoothedim, int rows, int cols,
     }
 }
 
+/*********************************************************************
+*@function     gaussian_smooth
+*
+*@param  [in]  *image - Input image
+*@param  [in]  rows   - Number of rows of input image
+*@param  [in]  cols   - Number of columns of input image
+*@param  [in]  sigma  - Input standard deviation
+*
+*@param  [out] **smoothedim - Output smoothened/filtered image
+*
+*@brief        Convolve Gaussian filter/kernel with the input image.
+*
+*********************************************************************/
 void gaussian_smooth(unsigned char *image, int rows, int cols, float sigma,
     short int **smoothedim) {
     int c; int cc; int r; int rr;
@@ -243,7 +281,7 @@ void gaussian_smooth(unsigned char *image, int rows, int cols, float sigma,
     float dot;
     float sum;
 
-    if (0) printf("   Computing the gaussian smoothing kernel.\n");
+    if (0) printf("   Computing the Gaussian smoothening kernel.\n");
     make_gaussian_kernel(sigma, &kernel, &windowsize);
     center = windowsize / 2;
 
@@ -290,6 +328,18 @@ void gaussian_smooth(unsigned char *image, int rows, int cols, float sigma,
     free(kernel);
 }
 
+/*********************************************************************
+*@function     make_gaussian_kernel
+*
+*@param  [in]     sigma    - Input standard deviation
+*@param  [in/out] **kernel - Output Gaussian filter/kernel
+*@param  [in/out] *windowsize - Number of filter coefficients
+*
+*@brief        Form the Gaussian filter/kernel to perform convolution.
+*              Note that selection of the size of the Gaussian kernel
+*              will affect the performance of the detection algorithm.
+*
+*********************************************************************/
 void make_gaussian_kernel(float sigma, float **kernel, int *windowsize) {
     int center; int i;
     float fx; float sum = 0.000000e+00f; float x;
@@ -555,6 +605,19 @@ void non_max_supp(short int *mag, short int *gradx, short int *grady, int nrows,
     }
 }
 
+/*********************************************************************
+*@function     read_pgm_image
+*
+*@param  [in]      *infilename - Input image file in PGM format
+*@param  [in/out]  *image      - Image matrix
+*@param  [in]      *rows       - Number of rows of read image
+*@param  [in]      *cols       - Number of columns of read image
+*
+*@param  [out]     Error code of reading an image
+*
+*@brief        Read an image in PGM (portable graymap) format.
+*
+*********************************************************************/
 int read_pgm_image(char *infilename, unsigned char *image, int *rows, int *cols) {
     struct _IO_FILE *fp;
     char buf[71];
@@ -598,6 +661,21 @@ int read_pgm_image(char *infilename, unsigned char *image, int *rows, int *cols)
     return (1);
 }
 
+/*********************************************************************
+*@function     write_pgm_image
+*
+*@param  [in]  *image       - Image matrix
+*@param  [in]  rows         - Number of rows of the image
+*@param  [in]  cols         - Number of columns of the image
+*@param  [in]  *comment     - Comment string
+*@param  [in]  maxval       - Maximum number of characters in the comment string
+*
+*@param  [out] *outfilename - Output image file in PGM format
+*@param  [out] Error code of writing PGM image to a file
+*
+*@brief        Write an image in PGM (portable graymap) format.
+*
+*********************************************************************/
 int write_pgm_image(char *outfilename, unsigned char *image, int rows,
     int cols, char *comment, int maxval) {
     struct _IO_FILE *fp;
@@ -625,6 +703,21 @@ int write_pgm_image(char *outfilename, unsigned char *image, int rows,
     return (1);
 }
 
+/*********************************************************************
+*@function     read_ppm_image
+*
+*@param  [in]      *infilename - Input image file in PPM format
+*@param  [in/out]  **image_red - Image matrix for red component
+*@param  [in/out]  **image_grn - Image matrix for green component
+*@param  [in/out]  **image_blu - Image matrix for blue component
+*@param  [in]      *rows       - Number of rows of read image
+*@param  [in]      *cols       - Number of columns of read image
+*
+*@param  [out]     Error code of reading an image
+*
+*@brief        Read an image in PPM (portable pixmap) format.
+*
+*********************************************************************/
 int read_ppm_image(char *infilename, unsigned char **image_red,
     unsigned char **image_grn, unsigned char **image_blu, int *rows,
     int *cols) {
@@ -683,6 +776,23 @@ int read_ppm_image(char *infilename, unsigned char **image_red,
     return (1);
 }
 
+/*********************************************************************
+*@function     write_ppm_image
+*
+*@param  [in]  *image_red   - Image matrix for red component
+*@param  [in]  *image_grn   - Image matrix for green component
+*@param  [in]  *image_blu   - Image matrix for blue component
+*@param  [in]  rows         - Number of rows of the image
+*@param  [in]  cols         - Number of columns of the image
+*@param  [in]  *comment     - Comment string
+*@param  [in]  maxval       - Maximum number of characters in the comment string
+*
+*@param  [out] *outfilename - Output image file in PPM format
+*@param  [out] Error code of writing PPM image data to a file
+*
+*@brief        Write an image in PPM (portable pixmap) format.
+*
+*********************************************************************/
 int write_ppm_image(char *outfilename, unsigned char *image_red,
     unsigned char *image_grn, unsigned char *image_blu, int rows,
     int cols, char *comment, int maxval) {
@@ -716,6 +826,16 @@ int write_ppm_image(char *outfilename, unsigned char *image_red,
     return (1);
 }
 
+/*********************************************************************
+*@function     _scc_bit4_err_handle
+*
+*@param  [in]  Bit vector
+*
+*@param  [out] Void
+*
+*@brief        Error handler for converting a bit vector to a string.
+*
+*********************************************************************/
 void _scc_bit4_err_handle(const _bit4& bit4vec) {
     char temp_bits[1024], *p;
     p=bit2str(2,&temp_bits[1023], bit4vec);
