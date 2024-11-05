@@ -1,14 +1,14 @@
 /*********************************************************************
 * Title     : Canny Edge Detector Algorithm
 * Author    : balarcode
-* Version   : 1.1
-* Date      : 1st November 2024
+* Version   : 1.2
+* Date      : 5th November 2024
 * File Type : C++ Program
 * File Test : Verified on open source SCRC V2.2
 * Comments  : Algorithm steps:
 *             1) Convolve the image with a separable Gaussian filter.
 *             2) Take dx and dy - the first derivatives using [-1,0,1] and [1,0,-1]'.
-*             3) Compute the magnitude: sqrt(dx*dx+dy*dy).
+*             3) Compute the magnitude: sqrt(dx*dx+dy*dy) and the angle.
 *             4) Perform non-maximal suppression.
 *             5) Perform hysteresis.
 *
@@ -125,7 +125,7 @@ void canny(unsigned char *image, int rows, int cols, float sigma,
     gaussian_smooth(image, rows, cols, sigma, &smoothedim);
 
     if (0) printf("Computing the X and Y first derivatives.\n");
-    derrivative_x_y(smoothedim, rows, cols,  &delta_x, &delta_y);
+    derivative_x_y(smoothedim, rows, cols, &delta_x, &delta_y);
 
     if (fname != 0) {
 	    radian_direction(delta_x, delta_y, rows, cols, &dir_radians, -1, -1);
@@ -159,6 +159,21 @@ void canny(unsigned char *image, int rows, int cols, float sigma,
     free(nms);
 }
 
+/*********************************************************************
+*@function     radian_direction
+*
+*@param  [in]  *delta_x          - X-direction derivative or gradient
+*@param  [in]  *delta_y          - Y-direction derivative or gradient
+*@param  [in]  rows              - Number of rows of input image
+*@param  [in]  cols              - Number of columns of input image
+*@param  [in/out]  **dir_radians - Gradient direction image
+*@param  [in]  xdirtag           - X-direction control
+*@param  [in]  ydirtag           - Y-direction control
+*
+*@brief        Compute the direction of the edges and store them as
+*              an image.
+*
+*********************************************************************/
 void radian_direction(short int *delta_x, short int *delta_y, int rows,
     int cols, float **dir_radians, int xdirtag, int ydirtag) {
     int c; int pos; int r;
@@ -184,6 +199,18 @@ void radian_direction(short int *delta_x, short int *delta_y, int rows,
     }
 }
 
+/*********************************************************************
+*@function     angle_radians
+*
+*@param  [in]  x         - X-direction derivative or gradient
+*@param  [in]  y         - Y-direction derivative or gradient
+*
+*@param  [out] ang       - Angle in radians
+*
+*@brief        Compute the angle in radians between the gradients in
+*              Y-direction and X-direction. arctan(|Gy|/|Gx|) is used.
+*
+*********************************************************************/
 double angle_radians(double x, double y) {
     double ang; double xu; double yu;
 
@@ -204,6 +231,20 @@ double angle_radians(double x, double y) {
     }
 }
 
+/*********************************************************************
+*@function     magnitude_x_y
+*
+*@param  [in]  *delta_x         - X-direction derivative or gradient
+*@param  [in]  *delta_y         - Y-direction derivative or gradient
+*@param  [in]  rows             - Number of rows of input image
+*@param  [in]  cols             - Number of columns of input image
+*
+*@param  [in/out]  **magnitude  - Gradient magnitude image
+*
+*@brief        Compute the gradient magnitudes or edge strengths and
+*              store them as an image.
+*
+*********************************************************************/
 void magnitude_x_y(short int *delta_x, short int *delta_y, int rows,
     int cols, short int **magnitude) {
     int c; int pos; int r; int sq1; int sq2;
@@ -222,7 +263,21 @@ void magnitude_x_y(short int *delta_x, short int *delta_y, int rows,
     }
 }
 
-void derrivative_x_y(short int *smoothedim, int rows, int cols,
+/*********************************************************************
+*@function     derivative_x_y
+*
+*@param  [in]  *smoothedim    - Input filtered/smoothened image
+*@param  [in]  rows           - Number of rows of input image
+*@param  [in]  cols           - Number of columns of input image
+*
+*@param  [in/out]  **delta_x  - X-direction derivative or gradient
+*@param  [in/out]  **delta_y  - Y-direction derivative or gradient
+*
+*@brief        Compute the gradients in X and Y directions for the
+*              Gaussian filtered or smoothened image.
+*
+*********************************************************************/
+void derivative_x_y(short int *smoothedim, int rows, int cols,
     short int **delta_x, short int **delta_y) {
     int c; int pos; int r;
 
