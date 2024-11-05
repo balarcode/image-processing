@@ -1,8 +1,8 @@
 /*********************************************************************
 * Title     : Canny Edge Detector Algorithm
 * Author    : balarcode
-* Version   : 1.0
-* Date      : 23rd October 2024
+* Version   : 1.1
+* Date      : 5th November 2024
 * File Type : C++ Header File
 * File Test : Verified on open source SCRC V2.2
 * Comments  : Note that, only the required declarations and definitions
@@ -1086,7 +1086,7 @@ void canny(unsigned char *, int, int, float, float, float, unsigned char *, char
 void radian_direction(short int *, short int *, int, int, float **, int, int);
 double angle_radians(double, double);
 void magnitude_x_y(short int *, short int *, int, int, short int **);
-void derrivative_x_y(short int *, int, int, short int **, short int **);
+void derivative_x_y(short int *, int, int, short int **, short int **);
 void gaussian_smooth(unsigned char *, int, int, float, short int **);
 void make_gaussian_kernel(float, float **, int *);
 void follow_edges(unsigned char *, short int *, short int, int);
