@@ -1,8 +1,8 @@
 /*********************************************************************
-* Title     : Canny Edge Detector Algorithm
+* Title     : Canny Edge Detection Algorithm
 * Author    : balarcode
-* Version   : 1.2
-* Date      : 5th November 2024
+* Version   : 1.3
+* Date      : 7th November 2024
 * File Type : C++ Program
 * File Test : Verified on open source SCRC V2.2
 * Comments  : Algorithm steps:
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 *@param  [in/out]  *edge - Output edge detected image
 *@param  [out]    *fname - Output file to write gradient direction in radians
 *
-*@brief        Execute Canny edge detection.
+*@brief        Execute Canny edge detection algorithm.
 *
 *********************************************************************/
 void canny(unsigned char *image, int rows, int cols, float sigma,
@@ -171,7 +171,10 @@ void canny(unsigned char *image, int rows, int cols, float sigma,
 *@param  [in]  ydirtag           - Y-direction control
 *
 *@brief        Compute the direction of the edges and store them as
-*              an image.
+*              a direction image. The angle is measured counterclockwise
+*              from the X-direction / X-axis.
+*              xdirtag = -1 for [-1 0 1] and xdirtag = 1 for [1 0 -1]
+*              ydirtag = -1 for [-1 0 1]' and ydirtag = 1 for [1 0 -1]'
 *
 *********************************************************************/
 void radian_direction(short int *delta_x, short int *delta_y, int rows,
@@ -209,6 +212,7 @@ void radian_direction(short int *delta_x, short int *delta_y, int rows,
 *
 *@brief        Compute the angle in radians between the gradients in
 *              Y-direction and X-direction. arctan(|Gy|/|Gx|) is used.
+*              The angle will be in the range: 0 <= ang <2*PI.
 *
 *********************************************************************/
 double angle_radians(double x, double y) {
@@ -234,8 +238,8 @@ double angle_radians(double x, double y) {
 /*********************************************************************
 *@function     magnitude_x_y
 *
-*@param  [in]  *delta_x         - X-direction derivative or gradient
-*@param  [in]  *delta_y         - Y-direction derivative or gradient
+*@param  [in]  *delta_x         - X-direction derivative or gradient image
+*@param  [in]  *delta_y         - Y-direction derivative or gradient image
 *@param  [in]  rows             - Number of rows of input image
 *@param  [in]  cols             - Number of columns of input image
 *
@@ -270,11 +274,18 @@ void magnitude_x_y(short int *delta_x, short int *delta_y, int rows,
 *@param  [in]  rows           - Number of rows of input image
 *@param  [in]  cols           - Number of columns of input image
 *
-*@param  [in/out]  **delta_x  - X-direction derivative or gradient
-*@param  [in/out]  **delta_y  - Y-direction derivative or gradient
+*@param  [in/out]  **delta_x  - X-direction derivative or gradient image
+*@param  [in/out]  **delta_y  - Y-direction derivative or gradient image
 *
-*@brief        Compute the gradients in X and Y directions for the
+*@brief        Compute the gradient images in X and Y directions for the
 *              Gaussian filtered or smoothened image.
+*              Note that gradients are first derivatives.
+*              The derivatives are taken using the following filters.
+*                                             -1
+*              dx =  -1 0 +1     and     dy =  0
+*                                             +1
+*              The derivatives at the borders are adjusted to avoid
+*              losing pixels.
 *
 *********************************************************************/
 void derivative_x_y(short int *smoothedim, int rows, int cols,
@@ -424,6 +435,21 @@ void make_gaussian_kernel(float sigma, float **kernel, int *windowsize) {
     }
 }
 
+/*********************************************************************
+*@function     follow_edges
+*
+*@param  [in]     *edgemapptr - Edge detected image
+*@param  [in]     *edgemagptr - Gradient magnitude image
+*@param  [in]     lowval      - Low gradient threshold
+*@param  [in]     cols        - Number of columns of input image
+*
+*@brief        Perform edge tracking using recursive approach.
+*              Group of weak edges that are connected to a strong edge
+*              either directly or indirectly are tracked and marked as
+*              strong edges themselves if the pixel magnitude is
+*              greater than low gradient threshold.
+*
+*********************************************************************/
 void follow_edges(unsigned char *edgemapptr, short int *edgemagptr, short int lowval, int cols) {
     short int *tempmagptr;
     unsigned char *tempmapptr;
@@ -443,6 +469,28 @@ void follow_edges(unsigned char *edgemapptr, short int *edgemagptr, short int lo
     }
 }
 
+/*********************************************************************
+*@function     apply_hysteresis
+*
+*@param  [in]     *mag  - Gradient magnitude image
+*@param  [in]     *nms  - Non-maximal suppressed image
+*@param  [in]     rows  - Number of rows of input image
+*@param  [in]     cols  - Number of columns of input image
+*@param  [in]     tlow  - Input low fraction for computing low gradient threshold
+*@param  [in]     thigh - Input high fraction for computing high gradient threshold
+*
+*@param  [in/out] *edge - Edge detected image
+*
+*@brief        This method detects edges that are:
+*              (1) Above high threshhold (strong edges)
+*              (2) Connected to a strong edge by a path of edge
+*                  pixels greater than low threshold (weak edges)
+*              The edge pixels that qualify the above criteria are
+*              included in the final edge detected image.
+*              Double thresholding and edge tracking techniques are
+*              applied here.
+*
+*********************************************************************/
 void apply_hysteresis(short int *mag, unsigned char *nms, int rows, int cols,
     float tlow, float thigh, unsigned char *edge) {
     int c; int highcount; int highthreshold; int lowthreshold; int numedges; int pos; int r;
@@ -451,8 +499,8 @@ void apply_hysteresis(short int *mag, unsigned char *nms, int rows, int cols,
 
     for (r = 0, pos = 0; r < rows; r++) {
 	    for (c = 0; c < cols; c++, pos++) {
-	        if (nms[pos] == 128) edge[pos] = 128;
-	        else edge[pos] = 255;
+	        if (nms[pos] == 128) edge[pos] = 128; // Weak edge
+	        else edge[pos] = 255; // No edge
 	    }
     }
 
@@ -497,17 +545,39 @@ void apply_hysteresis(short int *mag, unsigned char *nms, int rows, int cols,
     for (r = 0, pos = 0; r < rows; r++) {
 	    for (c = 0; c < cols; c++, pos++) {
 	        if ((edge[pos] == 128) && (mag[pos] >= highthreshold)) {
-		        edge[pos] = 0;
+		        edge[pos] = 0; // Strong edge
+				// Recursively call follow_edges() to continue from the strong edge to mark
+				// weak edges connected to the strong edge as strong edges themselves
 		        follow_edges((edge + pos), (mag + pos), lowthreshold, cols);
 	        }
 	    }
     }
 
+    // Suppress rest of the weak edges
     for (r = 0, pos = 0; r < rows; r++) {
-	    for (c = 0; c < cols; c++, pos++) if (edge[pos] != 0) edge[pos] = 255;
+	    for (c = 0; c < cols; c++, pos++) if (edge[pos] != 0) edge[pos] = 255; // No edge
     }
 }
 
+/*********************************************************************
+*@function        non_max_supp
+*
+*@param  [in]     *mag    - Gradient magnitude image
+*@param  [in]     *gradx  - X-direction gradient image
+*@param  [in]     *grady  - Y-direction gradient image
+*@param  [in]     nrows   - Number of rows of input image
+*@param  [in]     ncols   - Number of columns of input image
+*
+*@param  [in/out] *result - Non-maximal suppressed image
+*
+*@brief           Perform non-maximal suppression to the gradient
+*                 magnitude image. This method converts the blurred
+*                 edges in the gradient magnitude image to sharp edges.
+*                 In effect, all local maxima in the gradient magnitude
+*                 image gets preserved and rest all gradient magnitudes
+*                 get deleted or suppressed.
+*
+*********************************************************************/
 void non_max_supp(short int *mag, short int *gradx, short int *grady, int nrows, int ncols,
     unsigned char *result) {
     int colcount; int count; int rowcount;
