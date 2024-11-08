@@ -1,8 +1,8 @@
 /*********************************************************************
-* Title     : Canny Edge Detector Algorithm
+* Title     : Canny Edge Detection Algorithm
 * Author    : balarcode
-* Version   : 1.1
-* Date      : 5th November 2024
+* Version   : 1.2
+* Date      : 7th November 2024
 * File Type : C++ Header File
 * File Test : Verified on open source SCRC V2.2
 * Comments  : Note that, only the required declarations and definitions
