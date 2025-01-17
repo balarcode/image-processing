@@ -10,7 +10,7 @@
 
 ![Output and Input from Canny Edge Detection Algorithm](results/result_05.png)
 
-For the images in PGM binary format, refer to files: results/edge_detected_image_\*.pgm and images/image_*.pgm.
+For the images in PGM binary format, refer to files: results/edge_detected_image_\*.pgm and data/image_*.pgm.
 
 ## Citation
 
